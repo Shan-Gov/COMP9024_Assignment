@@ -10,12 +10,12 @@
 
 
 // A custom struct to hold all the ferry schedules
-typedef struct Ferry {
-   int departID;
-   int arriveID;
+typedef struct FerryNode {
    int departTime;
    int arriveTime;
-} Ferry;
+   struct FerryNode *next;
+} FerryNode;
+
 
 typedef struct EdgeInfo {
    bool isExist;
@@ -24,6 +24,7 @@ typedef struct EdgeInfo {
    int walkingTime;
    int departTime;
    int arriveTime;
+   FerryNode *ferries; // a linked list of the ferry schedules. depart @ v & arrive @ w 
 } EdgeInfo;
 
 
@@ -32,8 +33,6 @@ typedef struct GraphRep {
    int nV;       // #vertices
    int nE;       // #edges
    char **names; // Names of the landmarks will go here 2D array
-   Ferry *ferries; // all the ferry schedules will go here
-   int nFerries; // will need this for malloc later
 } GraphRep;
 
 
@@ -61,6 +60,7 @@ Graph newGraph(int V) {
          g->edges[i][j].walkingTime = NOT_WALKABLE;
          g->edges[i][j].departTime = NO_FERRY;
          g->edges[i][j].arriveTime = NO_FERRY;
+         g->edges[i][j].ferries = NULL; // setting all ferry schedule pointers to NULL
       }
    }
 
@@ -69,13 +69,7 @@ Graph newGraph(int V) {
    for (int j = 0; j < V; j++) {
       g->names[j] = NULL; // because my setVertexName function frees, NULL is better
    }
-
-   // Not necessary but safe.
-   g->ferries = NULL;
-   g->nFerries = 0;
-
-   
-   
+                      
    return g;
 }
 
@@ -162,36 +156,19 @@ void insertBiDirectionalEdge(Graph g, Edge e) {
    Vertex v = e.v;
    Vertex w = e.w;
 
-
    if (g->edges[v][w].isExist == false ) {
       if (g->edges[w][v].isExist == false) {
+         g->edges[v][w].isExist = true;
+         g->edges[w][v].isExist = true;
          g->edges[v][w].walkingTime = e.weight;
          g->edges[w][v].walkingTime = e.weight;
-         g->edges[w]
+         g->edges[v][w].isWalk = true;
+         g->edges[w][v].isWalk = true;
          g->nE++; // this is 1 bidirectional edge.
       }
    }
 }
 
-
-void setNoFerries(Graph g, int nFerries) {
-   g->nFerries = nFerries;
-   g->ferries = malloc(nFerries * sizeof(Ferry));
-}
-
-void setFerrySchedules(Graph g, int index, char *from, char *to, int departTime, int arriveTime) {
-
-   int vFrom = getVertexIDByName(g, from);
-   printf("From: %s: ", g->names[vFrom]); // to be removed
-   int vTo = getVertexIDByName(g, to);
-   printf("To: %s\n", g->names[vTo]); // to be removed
-
-
-   g->ferries[index].departID = vFrom;
-   g->ferries[index].arriveID = vTo;
-   g->ferries[index].departTime = departTime;
-   g->ferries[index].arriveTime = arriveTime;
-}
 
 //////////////////////////////////////////////////////////////////////////////////////
 

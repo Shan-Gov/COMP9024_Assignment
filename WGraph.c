@@ -24,7 +24,7 @@ typedef struct EdgeInfo {
    int walkingTime;
    int departTime;
    int arriveTime;
-   FerryNode *ferries; // a linked list of the ferry schedules. depart @ v & arrive @ w 
+   FerryNode *ferries; // a linked list of the ferry schedules. depart @ v & arrive @ w
 } EdgeInfo;
 
 
@@ -69,7 +69,7 @@ Graph newGraph(int V) {
    for (int j = 0; j < V; j++) {
       g->names[j] = NULL; // because my setVertexName function frees, NULL is better
    }
-                      
+
    return g;
 }
 
@@ -82,23 +82,23 @@ int validV(Graph g, Vertex v) {
    return (g != NULL && v >= 0 && v < g->nV);
 }
 
-void insertEdge(Graph g, Edge e) {
-   assert(g != NULL && validV(g,e.v) && validV(g,e.w));
+// void insertEdge(Graph g, Edge e) {
+//    assert(g != NULL && validV(g,e.v) && validV(g,e.w));
 
-   if (g->edges[e.v][e.w] == 0) {   // edge e not in graph
-      g->edges[e.v][e.w] = e.weight;
-      g->nE++;
-   }
-}
+//    if (g->edges[e.v][e.w] == 0) {   // edge e not in graph
+//       g->edges[e.v][e.w] = e.weight;
+//       g->nE++;
+//    }
+// }
 
-void removeEdge(Graph g, Edge e) {
-   assert(g != NULL && validV(g,e.v) && validV(g,e.w));
+// void removeEdge(Graph g, Edge e) {
+//    assert(g != NULL && validV(g,e.v) && validV(g,e.w));
 
-   if (g->edges[e.v][e.w] != 0) {   // edge e in graph
-      g->edges[e.v][e.w] = 0;
-      g->nE--;
-   }
-}
+//    if (g->edges[e.v][e.w] != 0) {   // edge e in graph
+//       g->edges[e.v][e.w] = 0;
+//       g->nE--;
+//    }
+// }
 
 int adjacent(Graph g, Vertex v, Vertex w) {
    assert(g != NULL && validV(g,v) && validV(g,w));
@@ -114,19 +114,48 @@ void showGraph(Graph g) {
     printf("Number of edges: %d\n", g->nE);
     for (i = 0; i < g->nV; i++)
        for (j = 0; j < g->nV; j++)
-	  if (g->edges[i][j] != 0)
-	     printf("Edge %d - %d: %d\n", i, j, g->edges[i][j]);
+	  if (g->edges[i][j].isExist == true) {
+      if(g->edges[i][j].isWalk == true) {
+         printf("Walking Edge: %s - %s: %d minutes\n", g->names[i], g->names[j], g->edges[i][j].walkingTime );
+      }
+      if (g->edges[i][j].isFerry == true) {
+         printf("Ferry Edge: %s - %s\n", g->names[i], g->names[j]);
+         printf("Departing At: %d\n", g->edges[i][j].ferries->departTime);
+         printf("Arriving At: %d\n", g->edges[i][j].ferries->arriveTime);
+      }
+     }
+
+     // TEST ONLY | CAN DELETE
+     for (int i = 0; i < numOfVertices(g); i++) {
+        for (int j = 0; j < numOfVertices(g); j++) {
+            if (g->edges[i][j].isExist) {
+                printf("Edge from %s to %s exists\n", g->names[i], g->names[j]);
+            }
+        }
+    }
 }
 
 void freeGraph(Graph g) {
    assert(g != NULL);
 
    int i;
+
+   // Free the ferry schedules linked list
+   for (i = 0; i < g->nV; i++) {
+      for (int j = 0; j < g->nV; j++) {
+         FerryNode *curr = g->edges[i][j].ferries;
+         while(curr != NULL) {
+            FerryNode *next = curr->next;
+            free(curr);
+            curr = next;
+         }
+      }
+   }
+
    for (i = 0; i < g->nV; i++)
       free(g->edges[i]);
    free(g->edges);
    free(g->names);
-   free(g->ferries);
    free(g);
 }
 
@@ -137,7 +166,7 @@ void setVertexName(Graph g, Vertex v, const char *name) {
    if (g->names[v] == NULL) {
       free(g->names[v]);
    }
-   g->names[v] = strdup(name); // strdup is a function that mallocs and copies a string to the malloced space. Returns a pointer. 
+   g->names[v] = strdup(name); // strdup is a function that mallocs and copies a string to the malloced space. Returns a pointer.
 }
 
 int getVertexIDByName(Graph g, char *name) {
@@ -147,10 +176,11 @@ int getVertexIDByName(Graph g, char *name) {
       }
    }
    // -1 denotes the landmark name was not found in the Graph.
-   return -1;   
+   return -1;
 }
 
-void insertBiDirectionalEdge(Graph g, Edge e) {
+void insertWalkingEdge(Graph g, Edge e) {
+   // Walking edge is bidirectional
    assert(g != NULL && validV(g,e.v) && validV(g, e.w));
 
    Vertex v = e.v;
@@ -167,6 +197,28 @@ void insertBiDirectionalEdge(Graph g, Edge e) {
          g->nE++; // this is 1 bidirectional edge.
       }
    }
+}
+
+
+void addFerryEdge(Graph g, Vertex V, Vertex W, int departTime, int arriveTime) {
+   // Ferry edge is unidirectional
+   assert(g != NULL);
+
+   FerryNode *newNode = malloc(sizeof(FerryNode));
+   assert(newNode != NULL);
+
+   newNode->departTime = departTime;
+   newNode->arriveTime = arriveTime;
+
+   // Inserting at the head. Later amend to insert in order?
+   newNode->next = g->edges[V][W].ferries;
+   g->edges[V][W].ferries = newNode;
+
+   g->edges[V][W].isExist = true;
+   g->edges[V][W].isFerry = true;
+
+
+   g->nE++; // increment the number of edges
 }
 
 

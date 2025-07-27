@@ -26,7 +26,9 @@ void  showGraph(Graph);
 void  freeGraph(Graph);
 void setVertexName(Graph g, Vertex v, const char *name);
 int getVertexIDByName(Graph g, char *name);
-void insertBiDirectionalEdge(Graph g, Edge e);
-void setNoFerries(Graph g, int nFerries);
-void setFerrySchedules(Graph g, int index, char *from, char *to, int depart, int arrive);
+void addFerryEdge(Graph g, Vertex V, Vertex W, int departTime, int arriveTime);
+void insertWalkingEdge(Graph g, Edge e);
+
+
+
 #endif

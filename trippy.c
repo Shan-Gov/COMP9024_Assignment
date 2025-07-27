@@ -54,15 +54,15 @@ int main(void) {
         scanf("%d", &walking_time);
         e.v = getVertexIDByName(g, from);
         e.w = getVertexIDByName(g, to);
-        e.weight = walking_time;       
-        insertBiDirectionalEdge(g, e); // bidirectional (walking) edge insertion
+        e.weight = walking_time;
+        insertWalkingEdge(g, e); // bidirectional (walking) edge insertion
     }
 
     int nFerries;
     printf("Number of ferry schedules: ");
     scanf("%d", &nFerries);
-    setNoFerries(g, nFerries);
-    
+    // setNoFerries(g, nFerries);
+
 
     for (int i = 0; i < nFerries; i++) {
         char depart[MAX_NAME_LEN];
@@ -84,13 +84,16 @@ int main(void) {
                 printf("Bad input. Try again.\n");
                 continue;
             }
-            break; // break out of while loop. All input valid      
+            break; // break out of while loop. All input valid
         }
-        
-        setFerrySchedules(g, i, depart, arrive, departTime, arriveTime);
+
+        Vertex departID = getVertexIDByName(g, depart);
+        Vertex arriveID = getVertexIDByName(g, arrive);
+
+        addFerryEdge(g, departID, arriveID, departTime, arriveTime);
     } // for loop close
 
-    
+
     char user_query_from[MAX_NAME_LEN];
     char user_query_to[MAX_NAME_LEN];
     TIME departing_at;
@@ -105,12 +108,14 @@ int main(void) {
         scanf("%s", user_query_to);
         printf("Departing at: ");
         scanf("%d", &departing_at);
-    
+
     }
-    
-    
+
+
     showGraph(g);
+
     
+
     return 0;
 }
 
@@ -131,5 +136,5 @@ void print_landmarks(char landmarks[][MAX_NAME_LEN], int no_landmarks, int max_c
 bool isValidTime(TIME t) {
     // this evaluates the expression and returns true or false. t % 100
     // checks is the minutes are less than 60. credit: extract_last_two_digits
-    return (t >= MIN_TIME && t <= MAX_TIME && t % 100 < 60);  
+    return (t >= MIN_TIME && t <= MAX_TIME && t % 100 < 60);
 }

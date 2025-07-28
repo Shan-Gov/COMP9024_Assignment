@@ -7,6 +7,12 @@
 
 typedef struct GraphRep *Graph;
 
+typedef struct FerryNode {
+    int departTime;
+    int arriveTime;
+    struct FerryNode *next;
+} FerryNode;
+
 // vertices are ints
 typedef int Vertex;
 
@@ -26,9 +32,11 @@ void  showGraph(Graph);
 void  freeGraph(Graph);
 void setVertexName(Graph g, Vertex v, const char *name);
 int getVertexIDByName(Graph g, char *name);
+char *getVertexNameByID(Graph g, Vertex v);
 void addFerryEdge(Graph g, Vertex V, Vertex W, int departTime, int arriveTime);
 void insertWalkingEdge(Graph g, Edge e);
-
-
+int getWalkingTime(Graph g, Vertex v, Vertex w);
+char edgeType(Graph g, Vertex v, Vertex w);
+FerryNode *getFerrySchedule(Graph g, Vertex v, Vertex w);
 
 #endif

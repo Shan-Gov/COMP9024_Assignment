@@ -6,20 +6,22 @@
 #include "WGraph.h"
 #include <stdbool.h>
 #include <string.h>
+#include "queue.h"
+#include "stack.h"
 
-#define WALK w
-#define FERRY f
+
+// MACROS //
 #define MIN_TIME 0000
 #define MAX_TIME 2359
+#define MAX_NAME_LEN 32
 
+// DEFINITIONS //
 typedef int TIME;
 
 
-// DEFINITIONS //
-#define MAX_NAME_LEN 32
-
 // FUNCTION PROTOTYPES //
-
+bool isValidTime(TIME t);
+void printingPath(Graph g, int *prev, Vertex from, Vertex to);
 
 //// MAIN ////
 int main(void) {
@@ -109,32 +111,104 @@ int main(void) {
         printf("Departing at: ");
         scanf("%d", &departing_at);
 
+        Vertex from_dest = getVertexIDByName(g, user_query_from);
+        Vertex to_dest = getVertexIDByName(g, user_query_to);
+
+        bool is_adjacent = adjacent(g, from_dest, to_dest);
+        int nV = numOfVertices(g);
+        int prev[nV]; // moved this here because will need it accessible later.
+        bool visited[nV];
+
+
+        if (is_adjacent == true) {
+            if (edgeType(g, from_dest, to_dest) == 'w') {
+                // Do if edge is a walking edge.
+                int walking_time = getWalkingTime(g, from_dest, to_dest);
+                if (walking_time != NOT_WALKABLE) {
+                    printf("Walk %d minute(s):\n", walking_time);
+                    printf("  %04d %s\n", departing_at, user_query_from);
+                    printf("  %04d %s\n", departing_at + walking_time, user_query_to);
+                }
+            }
+            if (edgeType(g, from_dest, to_dest) == 'f') {
+                FerryNode *ferry_schedule = getFerrySchedule(g, from_dest, to_dest);
+                if (ferry_schedule != NULL) {
+                    printf("Ferry %d minute(s):\n", ferry_schedule->arriveTime - ferry_schedule->departTime);
+                    printf("  %04d %s\n", ferry_schedule->departTime, user_query_from);
+                    printf("  %04d %s\n", ferry_schedule->arriveTime, user_query_to);
+                }
+            }
+        } else {
+
+            for (int i = 0; i < nV; i++) {
+                visited[i] = false;
+                prev[i] = -1;
+            }
+
+            queue q = newQueue();
+            QueueEnqueue(q, from_dest);
+            visited[from_dest] = true;
+
+            while (!QueueIsEmpty(q)) {
+                int v = QueueDequeue(q);
+
+                for (int w = 0; w < nV; w++) {
+                    if (adjacent(g,v,w) && visited[w] == false) {
+                        QueueEnqueue(q, w);
+                        visited[w] = true;
+                        prev[w] = v;
+                    }
+                }
+            }
+        }
+
+        if (prev[to_dest] == -1) {
+            printf("No available route.\n");
+        } else {
+            stack s = newStack();
+            StackPush(s, to_dest);
+            Vertex v = prev[to_dest];
+            while (v != -1) {
+                StackPush(s, v);
+                v = prev[v];
+            }
+
+            TIME current_time = departing_at;
+            Vertex previous = StackPop(s);
+
+            while (!StackIsEmpty(s)) {
+                Vertex curr = StackPop(s);
+                int walking_time = getWalkingTime(g, previous, curr);
+                printf("Walk %d minute(s)\n", walking_time);
+                printf("  %04d %s\n", current_time, getVertexNameByID(g, previous));
+                current_time += walking_time;
+                printf("  %04d %s\n", current_time, getVertexNameByID(g, curr));
+
+                previous = curr;
+            }
+        }
+
     }
 
-
+    printf("\n");
+    printf("\n");
+    printf("==================================CHECKING ALL GRAPH EDGES==================================\n");
     showGraph(g);
+    printf("\n");
+    printf("\n");
 
-    
 
+    printf("Safe travels!\n");
     return 0;
 }
 
 
 // FUNCTION IMPLEMENTATIONS //
 
-void print_landmarks(char landmarks[][MAX_NAME_LEN], int no_landmarks, int max_cols) {
-    for (int i = 0; i < no_landmarks; i++) {
-        printf("Landmark no %d: ", i+1);
-        for (int j = 0; j < MAX_NAME_LEN && landmarks[i][j] != '\0'; j++) {
-            printf("%c", landmarks[i][j]);
-        }
-    }
-}
-
-
-
 bool isValidTime(TIME t) {
     // this evaluates the expression and returns true or false. t % 100
     // checks is the minutes are less than 60. credit: extract_last_two_digits
     return (t >= MIN_TIME && t <= MAX_TIME && t % 100 < 60);
 }
+
+

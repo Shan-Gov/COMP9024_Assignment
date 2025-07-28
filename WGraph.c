@@ -9,19 +9,12 @@
 #include <stdbool.h>
 
 
-// A custom struct to hold all the ferry schedules
-typedef struct FerryNode {
-   int departTime;
-   int arriveTime;
-   struct FerryNode *next;
-} FerryNode;
-
-
+// A struct to hold all the required edge info
 typedef struct EdgeInfo {
    bool isExist;
    bool isWalk;
-   bool isFerry;
    int walkingTime;
+   bool isFerry;
    int departTime;
    int arriveTime;
    FerryNode *ferries; // a linked list of the ferry schedules. depart @ v & arrive @ w
@@ -133,6 +126,7 @@ void showGraph(Graph g) {
             }
         }
     }
+
 }
 
 void freeGraph(Graph g) {
@@ -179,6 +173,17 @@ int getVertexIDByName(Graph g, char *name) {
    return -1;
 }
 
+char *getVertexNameByID(Graph g, Vertex v) {
+   if (g == NULL) {
+      return NULL;
+   }
+   
+   char *name = g->names[v];
+
+   return name;
+}
+
+
 void insertWalkingEdge(Graph g, Edge e) {
    // Walking edge is bidirectional
    assert(g != NULL && validV(g,e.v) && validV(g, e.w));
@@ -220,6 +225,31 @@ void addFerryEdge(Graph g, Vertex V, Vertex W, int departTime, int arriveTime) {
 
    g->nE++; // increment the number of edges
 }
+
+// Returns the edge weight (walking time of walking edge)
+int getWalkingTime(Graph g, Vertex v, Vertex w) {
+   return g->edges[v][w].walkingTime;
+}
+
+// This returns a character that denotes the edge type connecting 2 vertices
+char edgeType(Graph g, Vertex v, Vertex w) {
+   if (g->edges[v][w].isWalk == true) {
+      return 'w';
+   } else if (g->edges[v][w].isFerry == true) {
+      return 'f';
+   }
+
+   return 'x';
+}
+
+FerryNode *getFerrySchedule(Graph g, Vertex v, Vertex w) {
+   if (g->edges[v][w].isFerry == true) {
+      return g->edges[v][w].ferries;
+   }
+
+   return NULL;
+}
+
 
 
 //////////////////////////////////////////////////////////////////////////////////////

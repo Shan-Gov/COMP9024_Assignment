@@ -7,26 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-
-
-// A struct to hold all the required edge info
-typedef struct EdgeInfo {
-   bool isExist;
-   bool isWalk;
-   int walkingTime;
-   bool isFerry;
-   int departTime;
-   int arriveTime;
-   FerryNode *ferries; // a linked list of the ferry schedules. depart @ v & arrive @ w
-} EdgeInfo;
-
-
-typedef struct GraphRep {
-   EdgeInfo **edges;  // Adjusted to store struct EdgeInfo which contains all edge info.
-   int nV;       // #vertices
-   int nE;       // #edges
-   char **names; // Names of the landmarks will go here 2D array
-} GraphRep;
+#include "stack.h"
 
 
 Graph newGraph(int V) {
@@ -119,10 +100,10 @@ void showGraph(Graph g) {
      }
 
      // TEST ONLY | CAN DELETE
-     for (int i = 0; i < numOfVertices(g); i++) {
-        for (int j = 0; j < numOfVertices(g); j++) {
-            if (g->edges[i][j].isExist) {
-                printf("Edge from %s to %s exists\n", g->names[i], g->names[j]);
+     for (int l = 0; l < numOfVertices(g); l++) {
+        for (int m = 0; m < numOfVertices(g); m++) {
+            if (g->edges[l][m].isExist) {
+                printf("Edge from %s to %s exists\n", g->names[l], g->names[m]);
             }
         }
     }
@@ -177,7 +158,7 @@ char *getVertexNameByID(Graph g, Vertex v) {
    if (g == NULL) {
       return NULL;
    }
-   
+
    char *name = g->names[v];
 
    return name;
@@ -214,11 +195,31 @@ void addFerryEdge(Graph g, Vertex V, Vertex W, int departTime, int arriveTime) {
 
    newNode->departTime = departTime;
    newNode->arriveTime = arriveTime;
+   newNode->next = NULL;
 
-   // Inserting at the head. Later amend to insert in order?
-   newNode->next = g->edges[V][W].ferries;
-   g->edges[V][W].ferries = newNode;
+   FerryNode *head = g->edges[V][W].ferries;
 
+
+   if (head == NULL || newNode->departTime < head->departTime) {
+      // CASE 1:  Inserting at the head (empty list or earliest)
+      newNode->next = head;
+      g->edges[V][W].ferries = newNode;
+   } else {
+      // CASE 2: One Node (Insert in order)
+      FerryNode *curr = g->edges[V][W].ferries;
+      // 1. find the location of the insert
+      while (curr->next != NULL && newNode->departTime > curr->next->departTime) {
+         curr = curr->next;
+      }
+      // 2. perform insert
+      FerryNode *oldNext = curr->next;
+      curr->next = newNode;
+      newNode->next = oldNext;
+   }
+
+
+
+   // Update values in struct
    g->edges[V][W].isExist = true;
    g->edges[V][W].isFerry = true;
 
@@ -248,6 +249,91 @@ FerryNode *getFerrySchedule(Graph g, Vertex v, Vertex w) {
    }
 
    return NULL;
+}
+
+void printFerrySchedule(Graph g, Vertex v, Vertex w) {
+   FerryNode *head = g->edges[v][w].ferries;
+
+   while (head != NULL) {
+      printf("%s: %d\n", g->names[v], head->departTime);
+      printf("%s: %d\n", g->names[w], head->arriveTime);
+      head = head->next;
+   }
+}
+
+
+int getTimeDifference(int t1, int t2) {
+   // Extract hours and minutes
+   int h1 = t1 / 100;
+   int m1 = t1 % 100;
+
+   // Extract hours and minutes
+   int h2 = t2 / 100;
+   int m2 = t2 % 100;
+
+   // Find total minutes in each
+   int total1 = h1 * 60 + m1; // total minutes h1
+   int total2 = h2 * 60 + m2; // total minutes h2
+
+   return total2 - total1;
+}
+
+int timeToMinutes(int t) {
+   // standard conversion function
+   return (t / 100) * 60 + (t % 100);
+}
+
+int minutesToTime(int mins) {
+   // standard conversion function
+   return (mins / 60) * 100  + (mins % 60);
+}
+
+
+bool dfsPathFinder(Graph g, Vertex curr, Vertex dest, int currentTimeMins, bool *visited, stack path) {
+
+   if (curr == dest) {
+      StackPush(path, curr);
+      return true;
+   }
+
+   for (Vertex v = 0; v < g->nV; v++) {
+      EdgeInfo edge = g->edges[curr][v];
+      if(!visited[v] && edge.isExist) {
+         // we check if the edge is a ferry and process accordingly
+         if (edge.isFerry) {
+            FerryNode *ferry = edge.ferries;
+            while(ferry != NULL && timeToMinutes(ferry->departTime) < currentTimeMins) {
+               // finding the right spot in the ferry schedule linked list
+               ferry = ferry->next;
+            }
+
+            // recursie step
+            if (ferry != NULL) {
+               int arriveTimeMins = timeToMinutes(ferry->arriveTime);
+               visited[v] = true;
+               if (dfsPathFinder(g, v, dest, arriveTimeMins, visited, path)) {
+                  StackPush(path, curr);
+                  return true;
+               }
+               visited[v] = false;
+            }
+         } else if (edge.isWalk) {
+            // so an edge exist but it is not a ferry. So it must be a walking edge.
+            int nextTime = currentTimeMins + edge.walkingTime;
+
+            // recursive step
+            visited[v] = true;
+            if (dfsPathFinder(g, v, dest, nextTime, visited, path)) {
+               StackPush(path, curr);
+               return true;
+            }
+            visited[v] = false;
+         }
+      }
+   }
+
+   return false;
+
 }
 
 

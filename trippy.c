@@ -19,6 +19,12 @@
 typedef int TIME;
 
 
+// typedef struct *TIME {
+//     int hours;
+//     int minutes;
+// } TIME;
+
+
 // FUNCTION PROTOTYPES //
 bool isValidTime(TIME t);
 void printingPath(Graph g, int *prev, Vertex from, Vertex to);
@@ -92,6 +98,11 @@ int main(void) {
         Vertex departID = getVertexIDByName(g, depart);
         Vertex arriveID = getVertexIDByName(g, arrive);
 
+
+        if (departID == -1 || arriveID == -1) {
+            printf("Error: Invalid landmark name.\n");
+            continue;
+        }
         addFerryEdge(g, departID, arriveID, departTime, arriveTime);
     } // for loop close
 
@@ -119,6 +130,9 @@ int main(void) {
         int prev[nV]; // moved this here because will need it accessible later.
         bool visited[nV];
 
+        bool pathFound = false;
+        stack path = newStack();
+
 
         if (is_adjacent == true) {
             if (edgeType(g, from_dest, to_dest) == 'w') {
@@ -133,59 +147,108 @@ int main(void) {
             if (edgeType(g, from_dest, to_dest) == 'f') {
                 FerryNode *ferry_schedule = getFerrySchedule(g, from_dest, to_dest);
                 if (ferry_schedule != NULL) {
-                    printf("Ferry %d minute(s):\n", ferry_schedule->arriveTime - ferry_schedule->departTime);
-                    printf("  %04d %s\n", ferry_schedule->departTime, user_query_from);
-                    printf("  %04d %s\n", ferry_schedule->arriveTime, user_query_to);
+                    FerryNode *curr = ferry_schedule;
+                    while(curr->departTime < departing_at) {
+                        curr = curr->next;
+                    }
+                    printf("Ferry %d minute(s):\n", getTimeDifference(curr->departTime, curr->arriveTime));
+                    printf("  %04d %s\n", curr->departTime, user_query_from);
+                    printf("  %04d %s\n", curr->arriveTime, user_query_to);
                 }
             }
         } else {
-
+            // Initialise Arrays for BFS (now DFS)
             for (int i = 0; i < nV; i++) {
                 visited[i] = false;
                 prev[i] = -1;
             }
 
-            queue q = newQueue();
-            QueueEnqueue(q, from_dest);
-            visited[from_dest] = true;
+            // queue q = newQueue();
+            // QueueEnqueue(q, from_dest);
+            // visited[from_dest] = true;
 
-            while (!QueueIsEmpty(q)) {
-                int v = QueueDequeue(q);
+            // BFS Search Algorithm using queue
+            // while (!QueueIsEmpty(q)) {
+            //     int v = QueueDequeue(q);
+            //     for (int w = 0; w < nV; w++) {
+            //         if (adjacent(g,v,w) && visited[w] == false) {
+            //             QueueEnqueue(q, w);
+            //             visited[w] = true;
+            //             prev[w] = v;
+            //         }
+            //     }
+            // }
 
-                for (int w = 0; w < nV; w++) {
-                    if (adjacent(g,v,w) && visited[w] == false) {
-                        QueueEnqueue(q, w);
-                        visited[w] = true;
-                        prev[w] = v;
-                    }
-                }
-            }
+            int startingTimeMins = timeToMinutes(departing_at);
+
+            pathFound = dfsPathFinder(g, from_dest, to_dest, startingTimeMins, visited, path);
         }
 
-        if (prev[to_dest] == -1) {
+        if (pathFound == false) {
             printf("No available route.\n");
         } else {
-            stack s = newStack();
-            StackPush(s, to_dest);
-            Vertex v = prev[to_dest];
-            while (v != -1) {
-                StackPush(s, v);
-                v = prev[v];
+            // path is in the stack
+            int currentTime = departing_at;
+
+            Vertex prev = StackPop(path);
+            printf("From: %s\n", getVertexNameByID(g, prev));
+            printf("To: %s\n", getVertexNameByID(g, to_dest));
+            printf("Departing at: %04d\n\n", departing_at);
+
+            while (!StackIsEmpty(path)) {
+                Vertex curr = StackPop(path);
+
+                EdgeInfo edge = g->edges[prev][curr];
+
+                if (edge.isWalk) {
+                    printf("Walk %d minute(s):\n", edge.walkingTime);
+                    printf("  %04d %s\n", currentTime, getVertexNameByID(g, prev));
+                    currentTime = timeToMinutes(currentTime);
+                    currentTime += edge.walkingTime;
+                    currentTime = minutesToTime(currentTime);
+                    printf("  %04d %s\n", currentTime, getVertexNameByID(g, curr));
+                } else if (edge.isFerry) {
+                    FerryNode *ferry = edge.ferries;
+                    while(ferry != NULL && timeToMinutes(ferry->departTime) < timeToMinutes(currentTime)) {
+                        ferry = ferry->next;
+                    }
+                    if (ferry != NULL) {
+                        printf("Ferry %d minute(s):\n", getTimeDifference(ferry->departTime, ferry->arriveTime));
+                        printf("  %04d %s\n", ferry->departTime, getVertexNameByID(g, prev));
+                        currentTime = ferry->arriveTime;
+                        printf("  %04d %s\n", ferry->arriveTime, getVertexNameByID(g, curr));
+                    }
+                }
+
+                prev = curr;
             }
 
-            TIME current_time = departing_at;
-            Vertex previous = StackPop(s);
 
-            while (!StackIsEmpty(s)) {
-                Vertex curr = StackPop(s);
-                int walking_time = getWalkingTime(g, previous, curr);
-                printf("Walk %d minute(s)\n", walking_time);
-                printf("  %04d %s\n", current_time, getVertexNameByID(g, previous));
-                current_time += walking_time;
-                printf("  %04d %s\n", current_time, getVertexNameByID(g, curr));
 
-                previous = curr;
-            }
+
+            // stack s = newStack();
+            // StackPush(s, to_dest);
+            // Vertex v = prev[to_dest];
+            // while (v != -1) {
+            //     StackPush(s, v);
+            //     v = prev[v];
+            // }
+
+
+            // TIME current_time = departing_at;
+            // Vertex previous = StackPop(s);
+
+            // // Printing Path
+            // while (!StackIsEmpty(s)) {
+            //     Vertex curr = StackPop(s);
+            //     int walking_time = getWalkingTime(g, previous, curr);
+            //     printf("Walk %d minute(s)\n", walking_time);
+            //     printf("  %04d %s\n", current_time, getVertexNameByID(g, previous));
+            //     current_time += walking_time;
+            //     printf("  %04d %s\n", current_time, getVertexNameByID(g, curr));
+
+            //     previous = curr;
+            // }
         }
 
     }

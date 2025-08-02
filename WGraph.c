@@ -138,10 +138,12 @@ void freeGraph(Graph g) {
 /// MY FUNCTIONS /////////////////////////////////////////////////////////////////////
 
 void setVertexName(Graph g, Vertex v, const char *name) {
-   if (g->names[v] == NULL) {
+   if (g->names[v] != NULL) {
       free(g->names[v]);
    }
-   g->names[v] = strdup(name); // strdup is a function that mallocs and copies a string to the malloced space. Returns a pointer.
+   g->names[v] = malloc((strlen(name) + 1) * sizeof(char));
+   assert(g->names[v] != NULL);
+   strcpy(g->names[v], name);
 }
 
 int getVertexIDByName(Graph g, char *name) {
@@ -307,7 +309,7 @@ bool dfsPathFinder(Graph g, Vertex curr, Vertex dest, int currentTimeMins, bool 
                ferry = ferry->next;
             }
 
-            // recursie step
+            // recursie step (if linked list i.e. ferry schedule is not NULL/empty)
             if (ferry != NULL) {
                int arriveTimeMins = timeToMinutes(ferry->arriveTime);
                visited[v] = true;
@@ -327,6 +329,8 @@ bool dfsPathFinder(Graph g, Vertex curr, Vertex dest, int currentTimeMins, bool 
                StackPush(path, curr);
                return true;
             }
+            // if path not found, reset vertex to false so can
+            // be visited again from another vertex.
             visited[v] = false;
          }
       }
@@ -339,5 +343,3 @@ bool dfsPathFinder(Graph g, Vertex curr, Vertex dest, int currentTimeMins, bool 
 
 
 //////////////////////////////////////////////////////////////////////////////////////
-
-

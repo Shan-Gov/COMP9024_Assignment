@@ -106,6 +106,8 @@ int main(void) {
         addFerryEdge(g, departID, arriveID, departTime, arriveTime);
     } // for loop close
 
+    printf("\n");
+
 
     char user_query_from[MAX_NAME_LEN];
     char user_query_to[MAX_NAME_LEN];
@@ -121,13 +123,14 @@ int main(void) {
         scanf("%s", user_query_to);
         printf("Departing at: ");
         scanf("%d", &departing_at);
+        printf("\n");
 
         Vertex from_dest = getVertexIDByName(g, user_query_from);
         Vertex to_dest = getVertexIDByName(g, user_query_to);
 
         bool is_adjacent = adjacent(g, from_dest, to_dest);
         int nV = numOfVertices(g);
-        int prev[nV]; // moved this here because will need it accessible later.
+        // int prev[nV]; // not required for DFS
         bool visited[nV];
 
         bool pathFound = false;
@@ -142,6 +145,7 @@ int main(void) {
                     printf("Walk %d minute(s):\n", walking_time);
                     printf("  %04d %s\n", departing_at, user_query_from);
                     printf("  %04d %s\n", departing_at + walking_time, user_query_to);
+                    printf("\n");
                 }
             }
             if (edgeType(g, from_dest, to_dest) == 'f') {
@@ -154,13 +158,14 @@ int main(void) {
                     printf("Ferry %d minute(s):\n", getTimeDifference(curr->departTime, curr->arriveTime));
                     printf("  %04d %s\n", curr->departTime, user_query_from);
                     printf("  %04d %s\n", curr->arriveTime, user_query_to);
+                    printf("\n");
                 }
             }
         } else {
             // Initialise Arrays for BFS (now DFS)
             for (int i = 0; i < nV; i++) {
                 visited[i] = false;
-                prev[i] = -1;
+                // prev[i] = -1; initilisation not required for DFS
             }
 
             // queue q = newQueue();
@@ -185,15 +190,15 @@ int main(void) {
         }
 
         if (pathFound == false) {
-            printf("No available route.\n");
+            printf("No available route.\n\n");
         } else {
             // path is in the stack
             int currentTime = departing_at;
 
             Vertex prev = StackPop(path);
-            printf("From: %s\n", getVertexNameByID(g, prev));
-            printf("To: %s\n", getVertexNameByID(g, to_dest));
-            printf("Departing at: %04d\n\n", departing_at);
+            // printf("From: %s\n", getVertexNameByID(g, prev));
+            // printf("To: %s\n", getVertexNameByID(g, to_dest));
+            // printf("Departing at: %04d\n", departing_at);
 
             while (!StackIsEmpty(path)) {
                 Vertex curr = StackPop(path);
@@ -219,11 +224,10 @@ int main(void) {
                         printf("  %04d %s\n", ferry->arriveTime, getVertexNameByID(g, curr));
                     }
                 }
-
                 prev = curr;
             }
 
-
+            printf("\n");
 
 
             // stack s = newStack();
@@ -253,12 +257,12 @@ int main(void) {
 
     }
 
-    printf("\n");
-    printf("\n");
-    printf("==================================CHECKING ALL GRAPH EDGES==================================\n");
-    showGraph(g);
-    printf("\n");
-    printf("\n");
+    // printf("\n");
+    // printf("\n");
+    // printf("==================================CHECKING ALL GRAPH EDGES==================================\n");
+    // showGraph(g);
+    // printf("\n");
+    // printf("\n");
 
 
     printf("Safe travels!\n");
